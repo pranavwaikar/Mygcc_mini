@@ -60,7 +60,6 @@ int main(int argc,char *argv[])
 			stage=ASM;
 			break;
 		case 'o':
-			printf("\no used \n");
 			o_used=TRUE;
 			op_file_name=optarg;
 			ilen=strlen(op_file_name);
