@@ -64,10 +64,8 @@ int main(int argc,char *argv[])
 			o_used=TRUE;
 			op_file_name=optarg;
 			ilen=strlen(op_file_name);
-			printf("\nop name:%s \n",op_file_name);
 			break;
 		case 'c':
-			printf("\nc used \n");
 			c_used=TRUE;
 			stage=OBJ;
 			break;

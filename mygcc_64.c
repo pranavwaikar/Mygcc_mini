@@ -17,8 +17,8 @@
 #define OBJ 20
 #define EXE 30
 
-#define TRUE   0;
-#define FALSE  1;
+#define TRUE   0
+#define FALSE  1
 
 
 typedef int    flag_t;
@@ -31,6 +31,7 @@ flag_t c_used=FALSE;			//flag for -c switch
 
 STAGE stage=EXE;
 
+int decision=TRUE;			//for decide func ret value
 int ret;				//getopt ret value
 int err=0;				//errno
 int ilen=0;				//length of custom name string
@@ -47,6 +48,7 @@ char *exe_create(char *,char *);	//o_src_file_name,exe_op_file_name
 char *print_time();			//returns date & time
 void sys_err(char *);
 int delete_file(char *);
+int decide(char *,char *);				//decides whether to build the processs again or skip
 
 int main(int argc,char *argv[])
 {
@@ -60,14 +62,11 @@ int main(int argc,char *argv[])
 			stage=ASM;
 			break;
 		case 'o':
-			printf("\no used \n");
 			o_used=TRUE;
 			op_file_name=optarg;
 			ilen=strlen(op_file_name);
-			printf("\nop name:%s \n",op_file_name);
 			break;
 		case 'c':
-			printf("\nc used \n");
 			c_used=TRUE;
 			stage=OBJ;
 			break;
@@ -101,6 +100,7 @@ if(fd==-1)
 	sys_err("failed to create log file");
 dup2(fd,STDOUT_FILENO);	//redirected stdout to build.log file
 
+
 	switch(stage)
 	{
 	case ASM:
@@ -122,6 +122,31 @@ dup2(fd,STDOUT_FILENO);	//redirected stdout to build.log file
 
 }
 
+int decide(char *src_file_name,char *op_file_name)
+{
+	int errval;
+	double time_diff;
+	struct stat stat_buff1,stat_buff2;
+
+	errval=stat(src_file_name,&stat_buff1);
+		if(errval==-1)
+		{
+			fprintf(stdout,"%s:%s,%s",print_time(),src_file_name,strerror(errno));
+		}
+
+	errval=stat(op_file_name,&stat_buff2);
+		if(errval==-1)
+		{
+			fprintf(stdout,"%s:%s,%s",print_time(),op_file_name,strerror(errno));
+		}	
+	time_diff=difftime(stat_buff1.st_mtime,stat_buff2.st_mtime);
+	printf("\ntime_diff=%lf\n",time_diff);
+	
+	if(time_diff > 0)
+		return TRUE;
+	else
+		return FALSE;	
+}
 
 void sys_err(char *str)
 {
@@ -162,7 +187,6 @@ char *asm_create(char *src_file_name,char *s_op_file_name)
 int iret;
 //copying str into local variable
 char *temp_s_op_file_name=calloc(ilen,sizeof(char));
-memset(temp_s_op_file_name,(int)"/0",ilen);
 strncpy(temp_s_op_file_name,src_file_name,ilen);
 
 
@@ -193,7 +217,6 @@ char *obj_create(char *s_src_file_name,char *o_op_file_name)
 int iret;
 //copying str into local variable
 char *temp_o_op_file_name=calloc(ilen,sizeof(char));
-memset(temp_o_op_file_name,(int)"/0",ilen);
 strncpy(temp_o_op_file_name,s_src_file_name,ilen);
 
 
@@ -224,7 +247,6 @@ char *exe_create(char * o_src_file_name,char * exe_op_file_name)
 int iret;
 //copying str into local variable
 char *temp_exe_op_file_name=calloc(ilen,sizeof(char));
-memset(temp_exe_op_file_name,(int)"/0",ilen);
 strncpy(temp_exe_op_file_name,o_src_file_name,ilen);
 
 	if(exe_op_file_name==NULL)
@@ -233,11 +255,11 @@ strncpy(temp_exe_op_file_name,o_src_file_name,ilen);
 	}
 	else
 	{
-		strncat(temp_exe_op_file_name,".exe",ilen);
+		strncat(temp_exe_op_file_name,"",ilen);//if you want you can add .exe here
 	}
 	if(fork()==0)
 	{	// if this gives error find the path where this shared object is linked
-		err=execlp("ld","ld","-o",temp_exe_op_file_name,"-lc","-dynamic-linker"," /lib64/ld­linux­x86­64.so.2",o_src_file_name,"-e","main",(char *)0);
+		err=execlp("ld","ld","-o",temp_exe_op_file_name,"-lc","-dynamic-linker","/lib64/ld-linux-x86-64.so.2",o_src_file_name,"-e","main",(char *)0);
 		if(err==-1)
 			fprintf(stderr,"\nFAILED:exec:ld\n");
 	}
