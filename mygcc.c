@@ -1,5 +1,5 @@
 //gcc command mini implementation
-//author:- PKW
+//author:- PKW 
 
 #include<stdio.h>
 #include<stdlib.h>
@@ -17,8 +17,8 @@
 #define OBJ 20
 #define EXE 30
 
-#define TRUE   0;
-#define FALSE  1;
+#define TRUE   0
+#define FALSE  1
 
 
 typedef int    flag_t;
@@ -31,6 +31,7 @@ flag_t c_used=FALSE;			//flag for -c switch
 
 STAGE stage=EXE;
 
+flag_t decision=TRUE;			//for decide func ret value
 int ret;				//getopt ret value
 int err=0;				//errno
 int ilen=0;				//length of custom name string
@@ -47,6 +48,7 @@ char *exe_create(char *,char *);	//o_src_file_name,exe_op_file_name
 char *print_time();			//returns date & time
 void sys_err(char *);
 int delete_file(char *);
+flag_t decide(STAGE,char *);		//decides whether to build the processs again or skip
 
 int main(int argc,char *argv[])
 {
@@ -55,7 +57,6 @@ int main(int argc,char *argv[])
 		switch(ret)
 		{
 		case 'S':
-			printf("\ns used \n");
 			S_used=TRUE;
 			stage=ASM;
 			break;
@@ -93,10 +94,20 @@ void build(STAGE stage,char *src_file_name,char *op_file_name)
 char *obj_name,*exe_name,*s_name;
 
 //creating new log file
-fd=open("./build.log",O_RDWR|O_CREAT|O_TRUNC,S_IRUSR|S_IWUSR|S_IROTH|S_IRGRP);
-if(fd==-1)
-	sys_err("failed to create log file");
-dup2(fd,STDOUT_FILENO);	//redirected stdout to build.log file
+	fd=open("./build.log",O_RDWR|O_CREAT|O_TRUNC,S_IRUSR|S_IWUSR|S_IROTH|S_IRGRP);
+	if(fd==-1)
+	{
+		sys_err("failed to create log file");
+		exit(EXIT_FAILURE);
+	}
+	dup2(fd,STDOUT_FILENO);	//redirected stdout to build.log file
+
+//checking for previous builds
+	decision=decide(stage,src_file_name);	
+	if(decision==FALSE)
+	{
+		exit(EXIT_SUCCESS);
+	}
 
 	switch(stage)
 	{
@@ -115,10 +126,70 @@ dup2(fd,STDOUT_FILENO);	//redirected stdout to build.log file
 		delete_file(s_name);
 		delete_file(obj_name);
 		break;
+	default:
+		printf("Unexpected error!\n");
+		break;
 	}
 
 }
 
+
+flag_t decide(STAGE stage,char *src_file_name)
+{
+	int errval;
+	double time_diff;
+	struct stat stat_buff1,stat_buff2;
+	time_t t1,t2;
+
+	//creating a copy to perform string operations
+	int str_len;
+	str_len=strlen(src_file_name);
+	
+	char *copy=calloc(str_len,sizeof(char));
+	strncpy(copy,src_file_name,str_len-2);
+	
+	//only custom names are taken into consideration
+	if(stage==ASM)
+	{
+		strncat(copy,".s",str_len);
+	}
+	if(stage==OBJ)
+	{
+		strncat(copy,".o",str_len);
+	}
+	if(stage==EXE)
+	{
+		strncat(copy,"",str_len);
+	}
+	
+	fprintf(stdout,"%s:Checking previous builds:%s:%s\n",print_time(),copy,strerror(errno));
+	
+	errval=stat(src_file_name,&stat_buff1);
+		if(errval==-1)
+		{
+			fprintf(stdout,"%s:%s:%s\n",print_time(),src_file_name,strerror(errno));
+		}
+
+	errval=stat(copy,&stat_buff2);
+		if(errval==-1)
+		{
+			fprintf(stdout,"%s:%s:%s\n",print_time(),copy,strerror(errno));
+		}	
+		t1=stat_buff1.st_mtime;
+		t2=stat_buff2.st_mtime;
+	time_diff=difftime(t1,t2);//comapre .c with other file	for last modification stamp
+	
+	if(time_diff > 0)//if greater than 0 then file is updated
+	{
+		fprintf(stdout,"%s:Sorce file is updated,Build necessary:%s\n",print_time(),src_file_name);
+		return TRUE;
+	}
+	else		//file is not updated
+	{
+		fprintf(stdout,"%s:Source file is not updated,No nedd to build:%s\n",print_time(),src_file_name);
+		return FALSE;	
+	}
+}
 
 void sys_err(char *str)
 {
@@ -159,7 +230,6 @@ char *asm_create(char *src_file_name,char *s_op_file_name)
 int iret;
 //copying str into local variable
 char *temp_s_op_file_name=calloc(ilen,sizeof(char));
-memset(temp_s_op_file_name,(int)"/0",ilen);
 strncpy(temp_s_op_file_name,src_file_name,ilen);
 
 
@@ -175,7 +245,10 @@ strncpy(temp_s_op_file_name,src_file_name,ilen);
 	{
 		err=execlp("/usr/bin/gcc","gcc","-S","-o",temp_s_op_file_name,src_file_name,(char *)0);
 		if(err==-1)
+		{
 			printf("\nFAILED:exec:gcc\n");
+			exit(EXIT_FAILURE);
+		}
 	}
 	else
 	{
@@ -190,7 +263,6 @@ char *obj_create(char *s_src_file_name,char *o_op_file_name)
 int iret;
 //copying str into local variable
 char *temp_o_op_file_name=calloc(ilen,sizeof(char));
-memset(temp_o_op_file_name,(int)"/0",ilen);
 strncpy(temp_o_op_file_name,s_src_file_name,ilen);
 
 
@@ -206,7 +278,10 @@ strncpy(temp_o_op_file_name,s_src_file_name,ilen);
 	{
 		err=execlp("/usr/bin/as","as","-o",temp_o_op_file_name,s_src_file_name,(char *)0);
 		if(err==-1)
+		{
 			printf("\nFAILED:exec:as\n");
+			exit(EXIT_FAILURE);
+		}
 	}
 	else
 	{
@@ -221,7 +296,6 @@ char *exe_create(char * o_src_file_name,char * exe_op_file_name)
 int iret;
 //copying str into local variable
 char *temp_exe_op_file_name=calloc(ilen,sizeof(char));
-memset(temp_exe_op_file_name,(int)"/0",ilen);
 strncpy(temp_exe_op_file_name,o_src_file_name,ilen);
 
 	if(exe_op_file_name==NULL)
@@ -230,13 +304,16 @@ strncpy(temp_exe_op_file_name,o_src_file_name,ilen);
 	}
 	else
 	{
-		strncat(temp_exe_op_file_name,".exe",ilen);
+		strncat(temp_exe_op_file_name,"",ilen);  //if you want you can add .exe here
 	}
 	if(fork()==0)
 	{
 		err=execlp("ld","ld","-o",temp_exe_op_file_name,"-lc","-dynamic-linker","/lib/i386-linux-gnu/ld-linux.so.2",o_src_file_name,"-e","main",(char *)0);
 		if(err==-1)
+		{
 			fprintf(stderr,"\nFAILED:exec:ld\n");
+			exit(EXIT_FAILURE);	
+		}
 	}
 	else
 	{
