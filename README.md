@@ -36,7 +36,7 @@ To delete file--> use unlink() system call
 To create a Child process--> use fork() & execlp(loc_of_file,file_name,list_of_args..);
 use wait(&ret) system call to achieve syncronous behaviour.
 
-To create custom name:--  
+To create custom name:--
                   copy the string after the switch -o which is pointed by optarg into a local buffer.
                   copy the optarg into local buffer using strncpy()
                   append the suffix using strncat(). eg strncat(str,".obj",str_len);
@@ -44,6 +44,11 @@ To create custom name:--
 To print errno :---
                 use strerror() function to print errno from file errno.h
                 eg. fprintf(stderr,"%s:%s","Failed\n",strerror(errno));
+
+The decide() function:--
+			the function checks whether source file is modifided or not. acc to that it build the program or skips building process.
+			it checks only for custom name. eg. for hello.c , according to STAGE it creates a name hello.s/hello.o/hello
+			stat() both the files & compare the last modification time & returns TRUE or FALSE
 
 NOTE: to create custom output name; first copy the argument into local buffer & use that buffer.
       Do NOT change original argv[]...if you do that then the pointer arragement done by getopt() will be tempered.
