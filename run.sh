@@ -24,7 +24,7 @@ echo "\nTest 1:mygcc hello.c\n";
 	cat build.log
 	echo "\nPress any key to continue\n";
 	read next;
-	rm a.out
+	rm hello
 	clear
 	
 
@@ -33,7 +33,7 @@ echo "\nTest2:mygcc -S hello.c\n";
 	cat build.log
 	echo "\nPress any key to continue\n";
 	read next;
-	rm a.out.s
+	rm hello.s
 	clear
 
 echo "\nTest3:mygcc -c hello.c\n";
@@ -41,7 +41,7 @@ echo "\nTest3:mygcc -c hello.c\n";
 	cat build.log
 	echo "\nPress any key to continue\n";
 	read next;
-	rm a.out.o
+	rm hello.o
 	clear
 
 echo "\nTest4:mygcc -o hello hello.c\n";
@@ -71,6 +71,7 @@ echo "\nTest5:mygcc -c -o hello hello.c\n";
 echo "\nTest6:Do not build if source is not changed\n";
 	echo "\nFirst creating a custom build\n";
 	./mygcc -o hello hello.c
+	cat build.log
 	echo "\nFirst build created now trying again..observe the log..any key to continue:\n";
 	read next;
 	./mygcc -o hello hello.c
@@ -83,6 +84,7 @@ echo "\nTest6:Do not build if source is not changed\n";
 echo "\nTets7:Build when source is changed\n";
 	echo "\nFirst creating a custom build\n";
 	./mygcc -o hello hello.c
+	cat build.log
 	echo "\nFirst build created now modifying source code..any key to continue:\n";
 	read next;
 	touch -m hello.c
@@ -90,6 +92,12 @@ echo "\nTets7:Build when source is changed\n";
 	read next
 	./mygcc -o hello hello.c
 	cat build.log
+	echo "\nPress any key to continue\n";
+	read next;
+	
+	
+	clear
+	echo "\nThank you\n";
 	echo "\nPress any key to EXIT\n";
 	read next;
 	rm hello
