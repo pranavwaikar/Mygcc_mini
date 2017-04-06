@@ -135,6 +135,7 @@ dup2(fd,STDOUT_FILENO);	//redirected stdout to build.log file
 void sys_err(char *str)
 {
 	fprintf(stderr,"%s:%s",str,strerror(errno));
+	exit(EXIT_FAILURE);
 }
 
 int delete_file(char *file_name)
@@ -144,6 +145,7 @@ int delete_file(char *file_name)
 	if(err==-1)
 	{
 		fprintf(stdout,"%s:ERROR Deleting file:%s\n",print_time(),file_name);
+		exit(EXIT_FAILURE);
 		return err;	
 	}
 	else
@@ -190,7 +192,10 @@ char *temp_s_op_file_name=calloc(ilen,sizeof(char));
 	{
 		err=execlp("/usr/bin/gcc","gcc","-S","-o",temp_s_op_file_name,src_file_name,(char *)0);
 		if(err==-1)
+		{
 			printf("\nFAILED:exec:gcc\n");
+			exit(EXIT_FAILURE);
+		}
 	}
 	else
 	{
@@ -223,7 +228,10 @@ char *temp_o_op_file_name=calloc(ilen,sizeof(char));
 	{
 		err=execlp("/usr/bin/as","as","-o",temp_o_op_file_name,s_src_file_name,(char *)0);
 		if(err==-1)
+		{
 			printf("\nFAILED:exec:as\n");
+			exit(EXIT_FAILURE);
+		}
 	}
 	else
 	{
@@ -254,7 +262,10 @@ char *temp_exe_op_file_name=calloc(ilen,sizeof(char));
 	{
 		err=execlp("ld","ld","-o",temp_exe_op_file_name,"-lc","-dynamic-linker","/lib64/ld-linux-x86-64.so.2",o_src_file_name,"-e","main",(char *)0);
 		if(err==-1)
+		{
 			fprintf(stderr,"\nFAILED:exec:ld\n");
+			exit(EXIT_FAILURE);
+		}
 	}
 	else
 	{
@@ -299,6 +310,7 @@ flag_t decide(STAGE stage,char *src_file_name)
 		if(errval==-1)
 		{
 			fprintf(stdout,"%s:%s:%s\n",print_time(),src_file_name,strerror(errno));
+			exit(EXIT_FAILURE);
 		}
 
 	errval=stat(copy,&stat_buff2);
